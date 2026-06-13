@@ -22,7 +22,7 @@ public class Client implements Runnable{
             t.start();
 
             String inMessage;
-            while((inMessage = in.readline()) != null){
+            while((inMessage = in.readLine()) != null){
                 System.out.println(inMessage);
             }
         }catch (IOException e){
@@ -36,7 +36,7 @@ public class Client implements Runnable{
             in.close();
             out.close();
             if(!client.isClosed()){
-                clien.close();
+                client.close();
             }
         } catch (IOException e){
 

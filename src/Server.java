@@ -8,15 +8,29 @@ import java.util.ArrayList;
 
 public class Server implements Runnable {
     private ArrayList<ConnectionHandler> connections;
+    private ServerSocket server;
+    private boolean done;
+    private ExecutorService pool;
+
+    public Server () {
+
+        connections = new ArrayList<>();
+        done = false;
+
+    }
     @Override
     public void run(){
         try{
-            ServerSocket server = new ServerSocket(9999);
-            Socket client = server.accept();
-            ConnectionHandler handler =new ConnectionHandler(client);
-            connections.add(handler);
+            server = new ServerSocket(9999);
+            pool = Executors.newCachedThreadPool();
+            while (!done) {
+                Socket client = server.accept();
+                ConnectionHandler handler = new ConnectionHandler(client);
+                connections.add(handler);
+                pool.execute(handler);
+            }
         } catch(IOException e){
-            // TODO:  Handle
+            shutdown();
         }
 
 
@@ -26,6 +40,20 @@ public class Server implements Runnable {
             if (ch != null){
                 ch.sendMessage(message);
             }
+        }
+    }
+
+    public void shutdown() {
+        try {
+            done = true;
+            if (!server.isclosed()) {
+                server.close();
+            }
+            for (ConnectionHandler ch : connections) {
+                ch.shutdown();
+            }
+        } catch (IOException e){
+            //Ignore
         }
     }
 
@@ -52,18 +80,46 @@ public class Server implements Runnable {
                 broadcast(nickname + " joined the chat!");
                 String message;
                 while ((message = in.readLine()) != null) {
-                    if (message.StartsWith("/nick")){
-                        //TODO: Handle Nickname
+                    if (message.startsWith("/nick")){
+                        String[] messageSplit = message.split(" ", 2);
+                        if (messageSplit.length == 2){
+                            broadcast(nickname + " has renamed their nickname to " + messageSplit[1]);
+                            System.out.println(nickname + " has renamed their nickname to " + messageSplit[1]);
+                            nickname = messageSplit[1];
+                            out.println("Successfuly changed nickname to " + nickname);
+                        } else {
+                            out.println("No nickname provided.");
+                        }
+                    } else if (message.startsWidth("/quit")){
+                        broadcast(nickname + " has left the chat!");
+                        shutdown();
+                    } else{
+                        broadcast(nickname + ": " + message);
                     }
                 }
             }
             catch (IOException e){
-                //TODO: Handle
+                shutdown();
             }
 
         }
         public void sendMessage(String message) {
             out.println(message);
+        }
+        public void shutdown() {
+            try {
+                if (!client.isClosed()) {
+                    in.close();
+                    out.close();
+                    client.close();
+                }
+            } catch (IOException e) {
+                // Ignore
+            }
+        }
+        public static void main(String[] args) {
+            Server server = new Server();
+            server.run();
         }
     }
 

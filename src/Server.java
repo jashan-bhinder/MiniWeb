@@ -31,7 +31,7 @@ public class Server implements Runnable {
                 connections.add(handler);
                 pool.execute(handler);
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             shutdown();
         }
     }
